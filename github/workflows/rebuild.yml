@@ -1,0 +1,38 @@
+name: Rebuild site
+
+on:
+  schedule:
+    - cron: '0 * * * *'        # every hour
+  workflow_dispatch:            # plus a manual "Run workflow" button
+
+permissions:
+  contents: write               # needed so the workflow can commit index.html back
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run generator
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: python generate.py
+
+      - name: Commit updated index.html
+        run: |
+          git config user.name  "brushlist-bot"
+          git config user.email "bot@thebrushlist.com"
+          git add index.html
+          if ! git diff --staged --quiet; then
+            git commit -m "rebuild $(date -u +%FT%TZ)"
+            git push
+          else
+            echo "No changes to commit."
+          fi
