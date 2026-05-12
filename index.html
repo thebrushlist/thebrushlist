@@ -100,6 +100,15 @@
     border: 1px solid rgba(184,137,59,0.5);
   }
   .wk-main { display: flex; flex-direction: column; gap: 2px; }
+  .wk-daynum {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.16em;
+    opacity: 0.55; margin-bottom: 4px;
+  }
+  .wk-cell.wk-baseline .wk-daynum { color: var(--gold); opacity: 0.85; }
+  .wk-cell.wk-l3 .wk-daynum,
+  .wk-cell.wk-l4 .wk-daynum { opacity: 0.75; }
   .wk-tool {
     font-variation-settings: "opsz" 144;
     font-weight: 500; font-size: 14px;
@@ -192,7 +201,7 @@
     font-variation-settings: "opsz" 144, "WONK" 1;
     font-weight: 400; font-size: 32px; margin: 0; letter-spacing: -0.015em;
   }
-  .section-head h2 em { font-style: italic; color: var(--accent); }
+  .section-head h2 em { font-style: normal; color: var(--accent); }
   .section-head .note {
     font-family: "JetBrains Mono", monospace; font-size: 10px;
     text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-soft);
@@ -374,53 +383,28 @@
     <p class="sub">An artist's benchmark, scored by organic Instagram views · <a href="https://instagram.com/thebrushlist">@thebrushlist</a></p>
   </section>
 
-  <section class="weekly" aria-label="Last 7 days"><div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div><div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div><div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div><div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div><div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div><div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div>
-          <div class="wk-cell wk-baseline" title="Sora 2 · +440 views">
+  
+      <div class="section-head">
+        <h2>By <em>week</em></h2>
+        <span class="note">1 day · anchored 23:12 UTC</span>
+      </div>
+      <section class="weekly" aria-label="Daily breakdown">
+          <div class="wk-cell wk-baseline" title="Day 01 · Sora 2 · +443 views">
             <span class="wk-live-dot" aria-hidden="true"></span>
             <div class="wk-main">
+              <div class="wk-daynum">Day 01</div>
               <p class="wk-tool">Sora 2</p>
-              <p class="wk-views">+440</p>
+              <p class="wk-views">+443</p>
             </div>
             <div class="wk-date">
               <span class="wk-wday">Tue</span>
               <span>12 May</span>
             </div>
-          </div></section>
-
-  
-          <section class="champion">
-            <div class="champ-meta">
-              <div class="laurel">Champion</div>
-              <h2 class="champ-name">Sora 2</h2>
-              <div class="champ-maker">1 post · across 1 work</div>
-            </div>
-            <div class="champ-stat">
-              <div class="big">440</div>
-              <div class="small">organic views</div>
-            </div>
-          </section>
-
-  
-          <div class="section-head">
-            <h2>The daily <em>ledger</em></h2>
-            <span class="note">1 day · anchored 23:02 UTC</span>
-          </div>
-          <ol class="ledger">
-              <li class="ledger-row">
-                <div class="ledger-day">
-                  <span class="day-num">Day 01</span>
-                  <span class="day-date">12 May → 13 May <span class="ledger-tag baseline">baseline</span> <span class="ledger-tag live">live</span></span>
-                </div>
-                <div class="ledger-winner">
-                  <span class="winner-name">Sora 2</span>
-                  <span class="winner-views">+440<span class="vlabel">views</span></span>
-                </div>
-                <div class="ledger-runners">Seedance 2 +169 · Google Veo +142 · Grok +140</div>
-              </li></ol>
+          </div><div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div><div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div><div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div><div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div><div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div><div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div></section>
 
   <div class="section-head">
     <h2>By <em>artwork</em></h2>
-    <span class="note">1 work · 7 posts · 1,193 views</span>
+    <span class="note">1 work · 7 posts · 1,226 views</span>
   </div>
 
   
@@ -429,7 +413,7 @@
                   <div class="artwork-frame"><img src="artworks/cabbage-beach.JPG" alt="Cabbage Beach"></div>
                   <div class="artwork-no">Since 2026-05-11</div>
                   <h3 class="artwork-title">Cabbage Beach</h3>
-                  <div class="artwork-medium">1,193 views · 7 models</div>
+                  <div class="artwork-medium">1,226 views · 7 models</div>
                 </div>
                 <div class="series-board">
                   <div class="post win">
@@ -438,7 +422,7 @@
                       <p class="name">Sora 2</p>
                       <span class="post-sub">1 post</span>
                     </div>
-                    <div class="post-views">440<span class="label">views</span></div>
+                    <div class="post-views">443<span class="label">views</span></div>
                     <div class="bar-wrap"><div class="bar" style="width:100%"></div></div>
                   </div>
                   <div class="post">
@@ -456,7 +440,7 @@
                       <p class="name">Google Veo</p>
                       <span class="post-sub">1 post</span>
                     </div>
-                    <div class="post-views">142<span class="label">views</span></div>
+                    <div class="post-views">143<span class="label">views</span></div>
                     <div class="bar-wrap"><div class="bar" style="width:32%"></div></div>
                   </div>
                   <div class="post">
@@ -474,8 +458,8 @@
                       <p class="name">Kling</p>
                       <span class="post-sub">1 post</span>
                     </div>
-                    <div class="post-views">127<span class="label">views</span></div>
-                    <div class="bar-wrap"><div class="bar" style="width:28%"></div></div>
+                    <div class="post-views">135<span class="label">views</span></div>
+                    <div class="bar-wrap"><div class="bar" style="width:30%"></div></div>
                   </div>
                   <div class="post">
                     <div class="post-rank">6</div>
@@ -483,8 +467,8 @@
                       <p class="name">Wan 2</p>
                       <span class="post-sub">1 post</span>
                     </div>
-                    <div class="post-views">89<span class="label">views</span></div>
-                    <div class="bar-wrap"><div class="bar" style="width:20%"></div></div>
+                    <div class="post-views">105<span class="label">views</span></div>
+                    <div class="bar-wrap"><div class="bar" style="width:23%"></div></div>
                   </div>
                   <div class="post">
                     <div class="post-rank">7</div>
@@ -492,8 +476,8 @@
                       <p class="name">Happy horse</p>
                       <span class="post-sub">1 post</span>
                     </div>
-                    <div class="post-views">86<span class="label">views</span></div>
-                    <div class="bar-wrap"><div class="bar" style="width:19%"></div></div>
+                    <div class="post-views">91<span class="label">views</span></div>
+                    <div class="bar-wrap"><div class="bar" style="width:20%"></div></div>
                   </div></div>
               </article>
 
