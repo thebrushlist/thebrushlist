@@ -594,7 +594,7 @@ TEMPLATE = """<!doctype html>
     color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.12em;
   }}
 
-  .hero {{ padding: 36px 0 24px; }}
+  .hero {{ padding: 20px 0 8px; }}
   .eyebrow {{
     font-family: "JetBrains Mono", monospace; font-size: 10px;
     text-transform: uppercase; letter-spacing: 0.22em;
@@ -624,11 +624,11 @@ TEMPLATE = """<!doctype html>
   /* ---- weekly commit-graph-style strip ---- */
   .weekly {{
     display: grid; grid-template-columns: repeat(7, 1fr);
-    gap: 6px; margin: 32px 0 56px;
+    gap: 8px; margin: 24px 0 56px;
   }}
   .wk-cell {{
-    aspect-ratio: 5 / 6; border-radius: 4px;
-    padding: 12px 11px 10px;
+    aspect-ratio: 4 / 5; border-radius: 4px;
+    padding: 18px 16px 16px;
     display: flex; flex-direction: column; justify-content: space-between;
     background: rgba(193,52,46,0.05); color: var(--ink);
     position: relative; overflow: hidden;
@@ -648,46 +648,46 @@ TEMPLATE = """<!doctype html>
     background: var(--ink); color: var(--paper);
     border: 1px solid rgba(184,137,59,0.5);
   }}
-  .wk-main {{ display: flex; flex-direction: column; gap: 2px; }}
+  .wk-main {{ display: flex; flex-direction: column; gap: 4px; }}
   .wk-daynum {{
     font-family: "JetBrains Mono", monospace;
-    font-size: 9px; font-weight: 500;
-    text-transform: uppercase; letter-spacing: 0.16em;
-    opacity: 0.55; margin-bottom: 4px;
+    font-size: 10px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.18em;
+    opacity: 0.55; margin-bottom: 8px;
   }}
-  .wk-cell.wk-baseline .wk-daynum {{ color: var(--gold); opacity: 0.85; }}
+  .wk-cell.wk-baseline .wk-daynum {{ color: var(--gold); opacity: 0.9; }}
   .wk-cell.wk-l3 .wk-daynum,
   .wk-cell.wk-l4 .wk-daynum {{ opacity: 0.75; }}
   .wk-tool {{
-    font-variation-settings: "opsz" 144;
-    font-weight: 500; font-size: 14px;
-    line-height: 1.15; letter-spacing: -0.005em;
+    font-family: "Fraunces", serif;
+    font-variation-settings: "opsz" 144, "WONK" 1;
+    font-weight: 400; font-size: 22px;
+    line-height: 1.05; letter-spacing: -0.015em;
     margin: 0;
   }}
-  .wk-cell.wk-baseline .wk-tool {{ color: var(--gold); }}
   .wk-views {{
     font-family: "JetBrains Mono", monospace;
     font-variant-numeric: tabular-nums;
-    font-size: 13px; font-weight: 500;
-    margin: 0;
+    font-size: 15px; font-weight: 500;
+    margin: 6px 0 0; letter-spacing: -0.01em;
   }}
   .wk-date {{
     font-family: "JetBrains Mono", monospace;
-    font-size: 9px; text-transform: uppercase;
-    letter-spacing: 0.13em; opacity: 0.65;
-    line-height: 1.3;
+    font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.14em; opacity: 0.65;
+    line-height: 1.4;
   }}
   .wk-wday {{
-    display: block; font-size: 10px; font-weight: 500;
-    letter-spacing: 0.15em; margin-bottom: 1px;
+    display: block; font-size: 11px; font-weight: 500;
+    letter-spacing: 0.18em; margin-bottom: 2px;
   }}
   .wk-empty-mark {{
     color: rgba(20,18,15,0.25); font-family: "JetBrains Mono", monospace;
-    font-size: 18px; align-self: center; margin: auto 0;
+    font-size: 20px; align-self: center; margin: auto 0;
   }}
   .wk-live-dot {{
-    position: absolute; top: 8px; right: 8px;
-    width: 6px; height: 6px; border-radius: 50%;
+    position: absolute; top: 10px; right: 10px;
+    width: 7px; height: 7px; border-radius: 50%;
     background: currentColor; opacity: 0.9;
     animation: wkpulse 1.6s ease-in-out infinite;
   }}
@@ -927,9 +927,8 @@ TEMPLATE = """<!doctype html>
   </header>
 
   <section class="hero">
-    <div class="eyebrow">The Brush List · Issue Nº 001</div>
-    <h1>Which AI tool is best at <em>promoting</em> art, not replacing it?</h1>
-    <p class="sub">An artist's benchmark, scored by organic Instagram views · <a href="https://instagram.com/thebrushlist">@thebrushlist</a></p>
+    <h1>Which AI tool is best for <em>promoting</em> art?</h1>
+    <p class="sub">An artist's benchmark, scored by Instagram views · <a href="https://instagram.com/thebrushlist">@thebrushlist</a> · by <a href="https://instagram.com/vovasimenok">@vovasimenok</a></p>
   </section>
 
   {weekly}
