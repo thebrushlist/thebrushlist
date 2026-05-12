@@ -442,6 +442,60 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
             </div>
           </section>"""
 
+    # ---- weekly commit-graph-style strip ----
+    # Show the last 7 days; pad with dashed empties until we have a full week.
+    week = list(daily_champions[-7:])
+    pad = 7 - len(week)
+    week_cells = [None] * pad + week  # empties on the left, real days on the right
+
+    # Intensity scaling: use the loudest non-baseline day in the strip.
+    scale_max = max(
+        (c["views"] for c in week_cells if c and not c["is_baseline"]),
+        default=0,
+    )
+
+    wk_cells_html = ""
+    for c in week_cells:
+        if c is None:
+            wk_cells_html += '<div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div>'
+            continue
+
+        try:
+            ws = dt.datetime.fromisoformat(c["window_start"])
+            date_label = ws.strftime("%-d %b") if os.name != "nt" else ws.strftime("%d %b")
+            wday_label = ws.strftime("%a")
+        except ValueError:
+            date_label = c["window_start"][:10]
+            wday_label = ""
+
+        if c["is_baseline"]:
+            cell_cls = "wk-baseline"
+        elif scale_max <= 0:
+            cell_cls = "wk-l1"
+        else:
+            ratio = c["views"] / scale_max
+            if   ratio >= 0.75: cell_cls = "wk-l4"
+            elif ratio >= 0.50: cell_cls = "wk-l3"
+            elif ratio >= 0.20: cell_cls = "wk-l2"
+            else:               cell_cls = "wk-l1"
+
+        live_dot = '<span class="wk-live-dot" aria-hidden="true"></span>' if c["in_progress"] else ""
+
+        wk_cells_html += f"""
+          <div class="wk-cell {cell_cls}" title="{e(c['tool'])} · +{fmt(c['views'])} views">
+            {live_dot}
+            <div class="wk-main">
+              <p class="wk-tool">{e(c['tool'])}</p>
+              <p class="wk-views">+{fmt(c['views'])}</p>
+            </div>
+            <div class="wk-date">
+              <span class="wk-wday">{e(wday_label)}</span>
+              <span>{e(date_label)}</span>
+            </div>
+          </div>"""
+
+    weekly_html = f'<section class="weekly" aria-label="Last 7 days">{wk_cells_html}</section>' if daily_champions else ""
+
     # ---- daily ledger ----
     if daily_champions:
         # the anchor (start of Day 01) defines the rhythm — show it as a hint
@@ -545,6 +599,7 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
 
     return TEMPLATE.format(
         issue_date=e(issue_date),
+        weekly=weekly_html,
         champion=champion_html,
         ledger=ledger_html,
         series=series_html,
@@ -613,6 +668,85 @@ TEMPLATE = """<!doctype html>
     line-height: 0.95; letter-spacing: -0.025em; margin: 0;
   }}
   h1 em {{ font-style: italic; color: var(--accent); }}
+  .sub {{
+    font-family: "Fraunces", serif;
+    font-size: clamp(15px, 1.6vw, 17px);
+    font-style: italic; font-weight: 400;
+    color: var(--ink-soft);
+    line-height: 1.45;
+    margin: 22px 0 0; max-width: 580px;
+  }}
+  .sub a {{
+    color: var(--accent); text-decoration: none;
+    font-style: normal; font-weight: 500;
+    border-bottom: 1px solid rgba(193,52,46,0.3);
+  }}
+  .sub a:hover {{ border-bottom-color: var(--accent); }}
+
+  /* ---- weekly commit-graph-style strip ---- */
+  .weekly {{
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 6px; margin: 32px 0 56px;
+  }}
+  .wk-cell {{
+    aspect-ratio: 5 / 6; border-radius: 4px;
+    padding: 12px 11px 10px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    background: rgba(193,52,46,0.05); color: var(--ink);
+    position: relative; overflow: hidden;
+    transition: transform 0.15s ease;
+  }}
+  .wk-cell:hover {{ transform: translateY(-2px); }}
+  .wk-cell.wk-empty {{
+    background: transparent;
+    border: 1px dashed rgba(20,18,15,0.18);
+    box-shadow: none;
+  }}
+  .wk-cell.wk-l1 {{ background: rgba(193,52,46,0.10); }}
+  .wk-cell.wk-l2 {{ background: rgba(193,52,46,0.28); }}
+  .wk-cell.wk-l3 {{ background: rgba(193,52,46,0.55); color: var(--paper); }}
+  .wk-cell.wk-l4 {{ background: var(--accent); color: var(--paper); }}
+  .wk-cell.wk-baseline {{
+    background: var(--ink); color: var(--paper);
+    border: 1px solid rgba(184,137,59,0.5);
+  }}
+  .wk-main {{ display: flex; flex-direction: column; gap: 2px; }}
+  .wk-tool {{
+    font-variation-settings: "opsz" 144;
+    font-weight: 500; font-size: 14px;
+    line-height: 1.15; letter-spacing: -0.005em;
+    margin: 0;
+  }}
+  .wk-cell.wk-baseline .wk-tool {{ color: var(--gold); }}
+  .wk-views {{
+    font-family: "JetBrains Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px; font-weight: 500;
+    margin: 0;
+  }}
+  .wk-date {{
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9px; text-transform: uppercase;
+    letter-spacing: 0.13em; opacity: 0.65;
+    line-height: 1.3;
+  }}
+  .wk-wday {{
+    display: block; font-size: 10px; font-weight: 500;
+    letter-spacing: 0.15em; margin-bottom: 1px;
+  }}
+  .wk-empty-mark {{
+    color: rgba(20,18,15,0.25); font-family: "JetBrains Mono", monospace;
+    font-size: 18px; align-self: center; margin: auto 0;
+  }}
+  .wk-live-dot {{
+    position: absolute; top: 8px; right: 8px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor; opacity: 0.9;
+    animation: wkpulse 1.6s ease-in-out infinite;
+  }}
+  @keyframes wkpulse {{
+    0%, 100% {{ opacity: 0.35 }} 50% {{ opacity: 1 }}
+  }}
 
   .champion {{
     margin: 40px 0 60px; background: var(--ink); color: var(--paper);
@@ -821,6 +955,9 @@ TEMPLATE = """<!doctype html>
   }}
 
   @media (max-width: 760px) {{
+    .weekly {{ grid-template-columns: repeat(4, 1fr); }}
+    .wk-tool {{ font-size: 13px; }}
+    .wk-views {{ font-size: 12px; }}
     .champion {{ grid-template-columns: 1fr; text-align: center; padding: 32px 24px; }}
     .champ-stat {{ text-align: center; }}
     .ledger-row {{ grid-template-columns: 90px 1fr; gap: 16px; }}
@@ -843,9 +980,12 @@ TEMPLATE = """<!doctype html>
   </header>
 
   <section class="hero">
-    <div class="eyebrow">Organic Views · By Model · By Artwork</div>
-    <h1>Which model <em>painted</em><br>its way to the top?</h1>
+    <div class="eyebrow">The Brush List · Issue Nº 001</div>
+    <h1>Which AI tool is best at <em>promoting</em> art, not replacing it?</h1>
+    <p class="sub">An artist's benchmark, scored by organic Instagram views · <a href="https://instagram.com/thebrushlist">@thebrushlist</a></p>
   </section>
+
+  {weekly}
 
   {champion}
 
