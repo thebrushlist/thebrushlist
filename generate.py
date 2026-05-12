@@ -411,48 +411,32 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
     now = dt.datetime.now(dt.timezone.utc)
     issue_date = now.strftime("%-d %b %Y") if os.name != "nt" else now.strftime("%d %b %Y")
 
-    # champion = tool with most total views globally
-    if global_tools:
-        champ_name, champ = max(global_tools.items(), key=lambda kv: kv[1]["views"])
-    else:
-        champ_name, champ = None, None
-
-    # ---- all-time champion card ----
-    if champ_name:
-        appears_in = sum(1 for b in by_artwork.values() if champ_name in b["tools"])
-        champion_html = f"""
-          <section class="champion">
-            <div class="champ-meta">
-              <div class="laurel">Champion</div>
-              <h2 class="champ-name">{e(champ_name)}</h2>
-              <div class="champ-maker">{champ['posts']} post{'s' if champ['posts'] != 1 else ''} · across {appears_in} work{'s' if appears_in != 1 else ''}</div>
-            </div>
-            <div class="champ-stat">
-              <div class="big">{fmt(champ['views'])}</div>
-              <div class="small">organic views</div>
-            </div>
-          </section>"""
-    else:
-        champion_html = """
-          <section class="champion">
-            <div class="champ-meta">
-              <div class="laurel">No champion yet</div>
-              <h2 class="champ-name">—</h2>
-              <div class="champ-maker">Post on Instagram with "Using: [model name]" to start the count</div>
-            </div>
-          </section>"""
-
     # ---- weekly commit-graph-style strip ----
-    # Show the last 7 days; pad with dashed empties until we have a full week.
-    week = list(daily_champions[-7:])
-    pad = 7 - len(week)
-    week_cells = [None] * pad + week  # empties on the left, real days on the right
+    # All days starting from Day 01, left-to-right, wrapping into 7-wide rows.
+    # The last row is padded with dashed empties so the grid stays rectangular.
+    week_cells = list(daily_champions)
+    if week_cells:
+        remainder = len(week_cells) % 7
+        if remainder:
+            week_cells += [None] * (7 - remainder)
+    else:
+        week_cells = [None] * 7
 
-    # Intensity scaling: use the loudest non-baseline day in the strip.
+    # Intensity scaling: loudest non-baseline day across everything shown.
     scale_max = max(
         (c["views"] for c in week_cells if c and not c["is_baseline"]),
         default=0,
     )
+
+    # anchor time (start of Day 01) gives the rhythm — used in the section note
+    if daily_champions:
+        try:
+            anchor_dt = dt.datetime.fromisoformat(daily_champions[0]["window_start"])
+            anchor_label = anchor_dt.strftime("%H:%M UTC")
+        except ValueError:
+            anchor_label = ""
+    else:
+        anchor_label = ""
 
     wk_cells_html = ""
     for c in week_cells:
@@ -482,9 +466,10 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
         live_dot = '<span class="wk-live-dot" aria-hidden="true"></span>' if c["in_progress"] else ""
 
         wk_cells_html += f"""
-          <div class="wk-cell {cell_cls}" title="{e(c['tool'])} · +{fmt(c['views'])} views">
+          <div class="wk-cell {cell_cls}" title="Day {c['day_num']:02d} · {e(c['tool'])} · +{fmt(c['views'])} views">
             {live_dot}
             <div class="wk-main">
+              <div class="wk-daynum">Day {c['day_num']:02d}</div>
               <p class="wk-tool">{e(c['tool'])}</p>
               <p class="wk-views">+{fmt(c['views'])}</p>
             </div>
@@ -494,63 +479,18 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
             </div>
           </div>"""
 
-    weekly_html = f'<section class="weekly" aria-label="Last 7 days">{wk_cells_html}</section>' if daily_champions else ""
-
-    # ---- daily ledger ----
-    if daily_champions:
-        # the anchor (start of Day 01) defines the rhythm — show it as a hint
-        anchor_iso = daily_champions[0]["window_start"]
-        try:
-            anchor_dt = dt.datetime.fromisoformat(anchor_iso)
-            anchor_label = anchor_dt.strftime("%H:%M UTC")
-        except ValueError:
-            anchor_label = ""
-
-        ledger_rows = ""
-        for c in daily_champions:
-            runners = ""
-            if c["runners_up"]:
-                parts = [f"{e(r['tool'])} +{fmt(r['views'])}" for r in c["runners_up"]]
-                runners = " · ".join(parts)
-
-            # nicer date label: "13 May → 14 May" if it crosses a calendar day
-            try:
-                ws = dt.datetime.fromisoformat(c["window_start"])
-                we = dt.datetime.fromisoformat(c["window_end"])
-                date_label = ws.strftime("%-d %b") if os.name != "nt" else ws.strftime("%d %b")
-                if ws.date() != we.date():
-                    end_label = we.strftime("%-d %b") if os.name != "nt" else we.strftime("%d %b")
-                    date_label = f"{date_label} → {end_label}"
-            except ValueError:
-                date_label = c["window_start"][:10]
-
-            tags = ""
-            if c["is_baseline"]:
-                tags += ' <span class="ledger-tag baseline">baseline</span>'
-            if c["in_progress"]:
-                tags += ' <span class="ledger-tag live">live</span>'
-
-            ledger_rows += f"""
-              <li class="ledger-row">
-                <div class="ledger-day">
-                  <span class="day-num">Day {c['day_num']:02d}</span>
-                  <span class="day-date">{e(date_label)}{tags}</span>
-                </div>
-                <div class="ledger-winner">
-                  <span class="winner-name">{e(c['tool'])}</span>
-                  <span class="winner-views">+{fmt(c['views'])}<span class="vlabel">views</span></span>
-                </div>
-                <div class="ledger-runners">{runners}</div>
-              </li>"""
-
-        ledger_html = f"""
-          <div class="section-head">
-            <h2>The daily <em>ledger</em></h2>
-            <span class="note">{len(daily_champions)} day{'s' if len(daily_champions) != 1 else ''} · anchored {e(anchor_label)}</span>
-          </div>
-          <ol class="ledger">{ledger_rows}</ol>"""
+    day_count = len(daily_champions)
+    if day_count:
+        weekly_note = f"{day_count} day{'s' if day_count != 1 else ''} · anchored {e(anchor_label)}"
     else:
-        ledger_html = ""
+        weekly_note = "No data yet"
+
+    weekly_html = f"""
+      <div class="section-head">
+        <h2>By <em>week</em></h2>
+        <span class="note">{weekly_note}</span>
+      </div>
+      <section class="weekly" aria-label="Daily breakdown">{wk_cells_html}</section>"""
 
     # ---- per-artwork series ----
     active_artworks = [slug for slug, b in by_artwork.items() if b["tools"]]
@@ -600,8 +540,6 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
     return TEMPLATE.format(
         issue_date=e(issue_date),
         weekly=weekly_html,
-        champion=champion_html,
-        ledger=ledger_html,
         series=series_html,
         artwork_count=len(active_artworks),
         post_count=len(posts),
@@ -711,6 +649,15 @@ TEMPLATE = """<!doctype html>
     border: 1px solid rgba(184,137,59,0.5);
   }}
   .wk-main {{ display: flex; flex-direction: column; gap: 2px; }}
+  .wk-daynum {{
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.16em;
+    opacity: 0.55; margin-bottom: 4px;
+  }}
+  .wk-cell.wk-baseline .wk-daynum {{ color: var(--gold); opacity: 0.85; }}
+  .wk-cell.wk-l3 .wk-daynum,
+  .wk-cell.wk-l4 .wk-daynum {{ opacity: 0.75; }}
   .wk-tool {{
     font-variation-settings: "opsz" 144;
     font-weight: 500; font-size: 14px;
@@ -803,7 +750,7 @@ TEMPLATE = """<!doctype html>
     font-variation-settings: "opsz" 144, "WONK" 1;
     font-weight: 400; font-size: 32px; margin: 0; letter-spacing: -0.015em;
   }}
-  .section-head h2 em {{ font-style: italic; color: var(--accent); }}
+  .section-head h2 em {{ font-style: normal; color: var(--accent); }}
   .section-head .note {{
     font-family: "JetBrains Mono", monospace; font-size: 10px;
     text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-soft);
@@ -986,10 +933,6 @@ TEMPLATE = """<!doctype html>
   </section>
 
   {weekly}
-
-  {champion}
-
-  {ledger}
 
   <div class="section-head">
     <h2>By <em>artwork</em></h2>
