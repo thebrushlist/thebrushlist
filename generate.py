@@ -834,9 +834,9 @@ TEMPLATE = """<!doctype html>
   }}
   .artwork-frame {{
     width: 100%; max-width: 360px;
-    aspect-ratio: 4/5; border-radius: 3px;
+    aspect-ratio: 16 / 10; border-radius: 3px;
     overflow: hidden; background: var(--paper-shade);
-    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 18px 40px -14px rgba(20,18,15,0.4);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 14px 32px -14px rgba(20,18,15,0.35);
   }}
   .artwork-frame img {{
     width: 100%; height: 100%; object-fit: cover; display: block;
@@ -902,13 +902,17 @@ TEMPLATE = """<!doctype html>
   .colophon {{
     margin-top: 56px; padding-top: 20px;
     border-top: 1px solid rgba(20,18,15,0.18);
-    display: flex; justify-content: space-between;
+    display: flex; flex-wrap: nowrap;
+    justify-content: space-between; align-items: center;
+    gap: 16px;
     font-family: "JetBrains Mono", monospace; font-size: 10px;
     text-transform: uppercase; letter-spacing: 0.15em; color: var(--ink-soft);
   }}
+  .colophon span {{ display: inline-flex; align-items: center; gap: 6px; }}
   .colophon em {{
     font-family: "Fraunces", serif; font-style: italic;
-    text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--ink);
+    text-transform: none; letter-spacing: 0; font-size: 11px; color: var(--ink);
+    line-height: 1;
   }}
 
   @media (max-width: 760px) {{
