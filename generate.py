@@ -833,10 +833,10 @@ TEMPLATE = """<!doctype html>
     gap: 16px; align-items: center;
   }}
   .artwork-frame {{
-    width: 100%; max-width: 580px;
+    width: 100%; max-width: 360px;
     aspect-ratio: 4/5; border-radius: 3px;
     overflow: hidden; background: var(--paper-shade);
-    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 22px 50px -16px rgba(20,18,15,0.45);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 18px 40px -14px rgba(20,18,15,0.4);
   }}
   .artwork-frame img {{
     width: 100%; height: 100%; object-fit: cover; display: block;
@@ -844,11 +844,11 @@ TEMPLATE = """<!doctype html>
   .artwork-caption {{
     display: flex; flex-direction: column;
     gap: 6px; text-align: center;
-    max-width: 580px; width: 100%;
+    max-width: 360px; width: 100%;
   }}
   .artwork-title {{
     font-variation-settings: "opsz" 144, "WONK" 1;
-    font-style: italic; font-weight: 400; font-size: 34px;
+    font-style: italic; font-weight: 400; font-size: 28px;
     line-height: 1; letter-spacing: -0.015em; margin: 0;
   }}
   .artwork-info {{
@@ -858,7 +858,7 @@ TEMPLATE = """<!doctype html>
 
   .series-board {{
     display: flex; flex-direction: column; gap: 2px;
-    width: 100%; max-width: 580px; align-self: center;
+    width: 100%; max-width: 480px; align-self: center;
   }}
   .post {{
     display: grid; grid-template-columns: 36px 1fr auto 110px;
@@ -964,8 +964,10 @@ TEMPLATE = """<!doctype html>
 
     /* by-artwork — image becomes a full-width hero per card */
     .series {{ gap: 16px; padding: 28px 0; }}
-    .artwork {{ gap: 14px; }}
-    .artwork-title {{ font-size: 26px; }}
+    .artwork {{ gap: 12px; }}
+    .artwork-frame {{ max-width: 280px; }}
+    .artwork-caption {{ max-width: 300px; }}
+    .artwork-title {{ font-size: 22px; }}
     .post {{ grid-template-columns: 28px 1fr auto; padding: 12px 12px; gap: 12px; }}
     .post-meta .name {{ font-size: 15px; }}
     .post-views {{ font-size: 15px; }}
