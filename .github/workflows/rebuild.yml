@@ -1,12 +1,11 @@
 name: Rebuild site
-
 on:
   schedule:
     - cron: '0 * * * *'        # every hour
   workflow_dispatch:            # plus a manual "Run workflow" button
 
 permissions:
-  contents: write               # needed so the workflow can commit index.html back
+  contents: write               # needed so the workflow can commit files back
 
 jobs:
   build:
@@ -25,13 +24,13 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
         run: python generate.py
 
-      - name: Commit updated index.html
+      - name: Commit rebuilt site + history
         run: |
           git config user.name  "brushlist-bot"
           git config user.email "bot@thebrushlist.com"
-          git add index.html
+          git add index.html brushlist-history.json
           if ! git diff --staged --quiet; then
-            git commit -m "rebuild $(date -u +%FT%TZ)"
+            git commit -m "rebuild $(date -u +%FT%TZ) [skip ci]"
             git push
           else
             echo "No changes to commit."
