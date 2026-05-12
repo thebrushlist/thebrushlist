@@ -5,6 +5,13 @@ Reads the artworks/ folder (filenames = paintings) and the connected
 Instagram account, joins them by mentions in post captions, and writes
 out a static index.html with a leaderboard of views per model per artwork.
 
+Also persists every run to a flat JSON history file (brushlist-history.json)
+so we can compute a daily ledger of "which model gained the most views in
+the last 24h" and stack those days into a rolling history.
+
+The history file is compacted on every save: only the latest snapshot per
+(post, UTC day) is kept, so file size grows with posts × days, not runs.
+
 Caption convention:
     "Day 4 of Night Tide. The lighting finally came together. Using: Sora 2"
 
@@ -39,6 +46,7 @@ API_VERSION = "v21.0"
 
 ARTWORKS_DIR = Path("artworks")
 OUTPUT_PATH  = Path("index.html")
+HISTORY_PATH = Path("brushlist-history.json")
 
 # Canonical tool names + aliases for normalization.
 # Aliases are matched after normalize() (lowercase, strip non-alphanumerics),
@@ -75,6 +83,15 @@ def fmt(n):
         return f"{int(n):,}"
     except (TypeError, ValueError):
         return "—"
+
+
+def pretty_date(iso_date):
+    """`2026-05-13` → `13 May`."""
+    try:
+        d = dt.datetime.strptime(iso_date, "%Y-%m-%d")
+    except ValueError:
+        return iso_date
+    return d.strftime("%-d %b") if os.name != "nt" else d.strftime("%d %b")
 
 
 # ---------- IG API ----------
@@ -170,6 +187,142 @@ def detect_artwork(caption, artworks):
     return None
 
 
+# ---------- history (local JSON file) ----------
+def load_history():
+    """Read brushlist-history.json, or return an empty shell if missing/corrupt."""
+    if HISTORY_PATH.exists():
+        try:
+            data = json.loads(HISTORY_PATH.read_text(encoding="utf-8"))
+            data.setdefault("snapshots", [])
+            return data
+        except (json.JSONDecodeError, OSError) as exc:
+            print(f"!! couldn't read {HISTORY_PATH} ({exc}); starting fresh")
+    return {"snapshots": []}
+
+
+def save_history(history):
+    """Compact (keep latest per post per UTC hour) then write the file.
+
+    Hour-level granularity is fine resolution for anchored 24h windows and
+    caps file growth even if the cron runs more often than hourly.
+    """
+    by_key = {}
+    for s in history.get("snapshots", []):
+        key = (s["post_id"], s["taken_at"][:13])  # YYYY-MM-DDTHH
+        existing = by_key.get(key)
+        if existing is None or s["taken_at"] > existing["taken_at"]:
+            by_key[key] = s
+    history["snapshots"] = sorted(
+        by_key.values(),
+        key=lambda s: (s["taken_at"], s["post_id"]),
+    )
+    HISTORY_PATH.write_text(
+        json.dumps(history, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
+def record_run(history, posts):
+    """Append one snapshot row per post for this moment."""
+    now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    for p in posts:
+        history["snapshots"].append({
+            "taken_at":     now,
+            "post_id":      p["id"],
+            "artwork_slug": p["artwork"],
+            "tool":         p["tool"],
+            "views":        p["views"],
+            "likes":        p["likes"],
+        })
+
+
+def compute_daily_champions(history):
+    """Daily ledger using rolling 24h windows anchored to the first run.
+
+    Day 1 = [first_run, first_run + 24h).  Day N = [first_run + (N-1)*24h, +N*24h).
+    For each post, we take its latest snapshot at-or-before each window's end
+    and diff against the prior window's end.  Windows that contain no fresh
+    snapshot (script outage / data gap) are skipped, not faked.
+
+    The latest window is flagged in_progress when last_ts < window_end so the
+    UI can show "still counting".
+    """
+    snapshots = history.get("snapshots", [])
+    if not snapshots:
+        return []
+
+    def parse_ts(s):
+        return dt.datetime.fromisoformat(s)
+
+    parsed = [(parse_ts(s["taken_at"]), s) for s in snapshots]
+    parsed.sort(key=lambda x: x[0])
+
+    anchor   = parsed[0][0]
+    last_ts  = parsed[-1][0]
+    n_days   = int((last_ts - anchor).total_seconds() // 86400) + 1
+
+    # snapshots grouped by post, in time order, for fast lookups
+    by_post = {}
+    for ts, s in parsed:
+        by_post.setdefault(s["post_id"], []).append((ts, s))
+
+    def views_as_of(post_snaps, cutoff):
+        """Latest (views, tool) for this post at-or-before cutoff."""
+        best = None
+        for ts, s in post_snaps:
+            if ts <= cutoff:
+                best = s
+            else:
+                break
+        return (best["views"], best.get("tool")) if best else (None, None)
+
+    champions = []
+    for day_num in range(1, n_days + 1):
+        w_start = anchor + dt.timedelta(days=day_num - 1)
+        w_end   = anchor + dt.timedelta(days=day_num)
+
+        # data gap: skip days with no fresh snapshot inside the window
+        had_data = any(w_start <= ts < w_end for ts, _ in parsed)
+        if not had_data:
+            continue
+
+        # for each post, delta = views_at_w_end - views_at_w_start
+        # (day 1's "views_at_w_start" is treated as 0 → baseline = full views)
+        tools = {}
+        for post_id, snaps in by_post.items():
+            v_end, tool_end = views_as_of(snaps, w_end)
+            if v_end is None or not tool_end:
+                continue
+            if day_num == 1:
+                delta = v_end
+            else:
+                v_prev, _ = views_as_of(snaps, w_start)
+                delta = v_end if v_prev is None else max(0, v_end - v_prev)
+            bucket = tools.setdefault(tool_end, {"views": 0, "posts": 0})
+            bucket["views"] += delta
+            bucket["posts"] += 1
+
+        if not tools:
+            continue
+
+        ranked = sorted(tools.items(), key=lambda kv: -kv[1]["views"])
+        winner_tool, winner_stats = ranked[0]
+        champions.append({
+            "day_num":      day_num,
+            "window_start": w_start.isoformat(timespec="seconds"),
+            "window_end":   w_end.isoformat(timespec="seconds"),
+            "tool":         winner_tool,
+            "views":        winner_stats["views"],
+            "posts":        winner_stats["posts"],
+            "is_baseline":  (day_num == 1),
+            "in_progress":  (last_ts < w_end),
+            "runners_up":   [
+                {"tool": t, "views": s["views"]} for t, s in ranked[1:4]
+            ],
+        })
+    return champions
+
+
 # ---------- main ----------
 def main():
     if not ACCESS_TOKEN:
@@ -206,6 +359,13 @@ def main():
             "tool":      detect_tool(caption),
         })
 
+    # persist this run, then compute the daily ledger
+    history = load_history()
+    record_run(history, posts)
+    save_history(history)
+    daily_champions = compute_daily_champions(history)
+    print(f"History: {len(history['snapshots'])} snapshot(s) · ledger spans {len(daily_champions)} day(s).")
+
     # aggregate: per-artwork → per-tool → total views
     by_artwork = {a["slug"]: {"art": a, "tools": {}, "first_seen": None, "total": 0}
                   for a in artworks}
@@ -238,13 +398,15 @@ def main():
             unmatched.append(p)
 
     # ---------- render HTML ----------
-    out = render(artworks, by_artwork, global_tools, posts, unmatched, grand_total)
+    out = render(artworks, by_artwork, global_tools, posts, unmatched,
+                 grand_total, daily_champions)
     OUTPUT_PATH.write_text(out, encoding="utf-8")
     print(f"Wrote {OUTPUT_PATH}  ({len(out):,} bytes)")
 
 
 # ---------- HTML rendering ----------
-def render(artworks, by_artwork, global_tools, posts, unmatched, grand_total):
+def render(artworks, by_artwork, global_tools, posts, unmatched,
+           grand_total, daily_champions):
     e = html.escape
     now = dt.datetime.now(dt.timezone.utc)
     issue_date = now.strftime("%-d %b %Y") if os.name != "nt" else now.strftime("%d %b %Y")
@@ -255,10 +417,89 @@ def render(artworks, by_artwork, global_tools, posts, unmatched, grand_total):
     else:
         champ_name, champ = None, None
 
-    # series cards — only artworks that have at least one post
-    active_artworks = [
-        slug for slug, b in by_artwork.items() if b["tools"]
-    ]
+    # ---- all-time champion card ----
+    if champ_name:
+        appears_in = sum(1 for b in by_artwork.values() if champ_name in b["tools"])
+        champion_html = f"""
+          <section class="champion">
+            <div class="champ-meta">
+              <div class="laurel">Champion</div>
+              <h2 class="champ-name">{e(champ_name)}</h2>
+              <div class="champ-maker">{champ['posts']} post{'s' if champ['posts'] != 1 else ''} · across {appears_in} work{'s' if appears_in != 1 else ''}</div>
+            </div>
+            <div class="champ-stat">
+              <div class="big">{fmt(champ['views'])}</div>
+              <div class="small">organic views</div>
+            </div>
+          </section>"""
+    else:
+        champion_html = """
+          <section class="champion">
+            <div class="champ-meta">
+              <div class="laurel">No champion yet</div>
+              <h2 class="champ-name">—</h2>
+              <div class="champ-maker">Post on Instagram with "Using: [model name]" to start the count</div>
+            </div>
+          </section>"""
+
+    # ---- daily ledger ----
+    if daily_champions:
+        # the anchor (start of Day 01) defines the rhythm — show it as a hint
+        anchor_iso = daily_champions[0]["window_start"]
+        try:
+            anchor_dt = dt.datetime.fromisoformat(anchor_iso)
+            anchor_label = anchor_dt.strftime("%H:%M UTC")
+        except ValueError:
+            anchor_label = ""
+
+        ledger_rows = ""
+        for c in daily_champions:
+            runners = ""
+            if c["runners_up"]:
+                parts = [f"{e(r['tool'])} +{fmt(r['views'])}" for r in c["runners_up"]]
+                runners = " · ".join(parts)
+
+            # nicer date label: "13 May → 14 May" if it crosses a calendar day
+            try:
+                ws = dt.datetime.fromisoformat(c["window_start"])
+                we = dt.datetime.fromisoformat(c["window_end"])
+                date_label = ws.strftime("%-d %b") if os.name != "nt" else ws.strftime("%d %b")
+                if ws.date() != we.date():
+                    end_label = we.strftime("%-d %b") if os.name != "nt" else we.strftime("%d %b")
+                    date_label = f"{date_label} → {end_label}"
+            except ValueError:
+                date_label = c["window_start"][:10]
+
+            tags = ""
+            if c["is_baseline"]:
+                tags += ' <span class="ledger-tag baseline">baseline</span>'
+            if c["in_progress"]:
+                tags += ' <span class="ledger-tag live">live</span>'
+
+            ledger_rows += f"""
+              <li class="ledger-row">
+                <div class="ledger-day">
+                  <span class="day-num">Day {c['day_num']:02d}</span>
+                  <span class="day-date">{e(date_label)}{tags}</span>
+                </div>
+                <div class="ledger-winner">
+                  <span class="winner-name">{e(c['tool'])}</span>
+                  <span class="winner-views">+{fmt(c['views'])}<span class="vlabel">views</span></span>
+                </div>
+                <div class="ledger-runners">{runners}</div>
+              </li>"""
+
+        ledger_html = f"""
+          <div class="section-head">
+            <h2>The daily <em>ledger</em></h2>
+            <span class="note">{len(daily_champions)} day{'s' if len(daily_champions) != 1 else ''} · anchored {e(anchor_label)}</span>
+          </div>
+          <ol class="ledger">{ledger_rows}</ol>"""
+    else:
+        ledger_html = ""
+
+    # ---- per-artwork series ----
+    active_artworks = [slug for slug, b in by_artwork.items() if b["tools"]]
     active_artworks.sort(key=lambda s: -by_artwork[s]["total"])
 
     series_html = ""
@@ -302,33 +543,10 @@ def render(artworks, by_artwork, global_tools, posts, unmatched, grand_total):
                 <div class="series-board">{rows}</div>
               </article>"""
 
-    # champion card
-    if champ_name:
-        champion_html = f"""
-          <section class="champion">
-            <div class="champ-meta">
-              <div class="laurel">Champion</div>
-              <h2 class="champ-name">{e(champ_name)}</h2>
-              <div class="champ-maker">{champ['posts']} post{'s' if champ['posts'] != 1 else ''} · across {sum(1 for b in by_artwork.values() if champ_name in b['tools'])} work{'s' if sum(1 for b in by_artwork.values() if champ_name in b['tools']) != 1 else ''}</div>
-            </div>
-            <div class="champ-stat">
-              <div class="big">{fmt(champ['views'])}</div>
-              <div class="small">organic views</div>
-            </div>
-          </section>"""
-    else:
-        champion_html = """
-          <section class="champion">
-            <div class="champ-meta">
-              <div class="laurel">No champion yet</div>
-              <h2 class="champ-name">—</h2>
-              <div class="champ-maker">Post on Instagram with "Using: [model name]" to start the count</div>
-            </div>
-          </section>"""
-
     return TEMPLATE.format(
         issue_date=e(issue_date),
         champion=champion_html,
+        ledger=ledger_html,
         series=series_html,
         artwork_count=len(active_artworks),
         post_count=len(posts),
@@ -457,6 +675,71 @@ TEMPLATE = """<!doctype html>
     text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-soft);
   }}
 
+  /* ---- daily ledger ---- */
+  .ledger {{
+    list-style: none; padding: 0; margin: 8px 0 0;
+    display: flex; flex-direction: column;
+  }}
+  .ledger-row {{
+    display: grid;
+    grid-template-columns: 140px 1fr auto;
+    gap: 24px; align-items: center;
+    padding: 22px 4px;
+    border-bottom: 1px solid rgba(20,18,15,0.12);
+  }}
+  .ledger-row:last-child {{ border-bottom: none; }}
+  .ledger-day {{ display: flex; flex-direction: column; gap: 4px; }}
+  .ledger-day .day-num {{
+    font-family: "Fraunces", serif;
+    font-variation-settings: "opsz" 144, "WONK" 1;
+    font-style: italic; font-weight: 400; font-size: 30px;
+    line-height: 1; letter-spacing: -0.015em; color: var(--accent);
+  }}
+  .ledger-day .day-date {{
+    font-family: "JetBrains Mono", monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-soft);
+    display: flex; align-items: center; gap: 8px;
+  }}
+  .baseline-tag, .ledger-tag {{
+    display: inline-block; padding: 2px 6px;
+    border-radius: 2px; font-size: 9px; letter-spacing: 0.15em;
+  }}
+  .ledger-tag.baseline {{
+    background: var(--paper-deep); color: var(--ink-soft);
+  }}
+  .ledger-tag.live {{
+    background: var(--accent); color: var(--paper);
+  }}
+  .ledger-tag.live::before {{
+    content: ""; display: inline-block;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--paper); margin-right: 5px; vertical-align: middle;
+    animation: pulse 1.6s ease-in-out infinite;
+  }}
+  @keyframes pulse {{
+    0%, 100% {{ opacity: 0.4; }} 50% {{ opacity: 1; }}
+  }}
+  .ledger-winner {{ display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }}
+  .ledger-winner .winner-name {{
+    font-variation-settings: "opsz" 144, "WONK" 1;
+    font-weight: 500; font-size: 24px; letter-spacing: -0.01em;
+  }}
+  .ledger-winner .winner-views {{
+    font-family: "JetBrains Mono", monospace;
+    font-variant-numeric: tabular-nums; font-size: 16px;
+    color: var(--accent); font-weight: 500;
+  }}
+  .ledger-winner .winner-views .vlabel {{
+    display: inline; font-size: 9px; text-transform: uppercase;
+    letter-spacing: 0.15em; color: var(--ink-soft); margin-left: 6px;
+  }}
+  .ledger-runners {{
+    font-family: "JetBrains Mono", monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.13em; color: var(--ink-soft);
+    text-align: right; max-width: 360px; line-height: 1.5;
+  }}
+
+  /* ---- per-artwork series ---- */
   .series {{
     display: grid; grid-template-columns: 220px 1fr;
     gap: 36px; padding: 36px 0;
@@ -540,6 +823,8 @@ TEMPLATE = """<!doctype html>
   @media (max-width: 760px) {{
     .champion {{ grid-template-columns: 1fr; text-align: center; padding: 32px 24px; }}
     .champ-stat {{ text-align: center; }}
+    .ledger-row {{ grid-template-columns: 90px 1fr; gap: 16px; }}
+    .ledger-runners {{ display: none; }}
     .series {{ grid-template-columns: 1fr; }}
     .artwork {{ flex-direction: row; align-items: flex-start; gap: 16px; }}
     .artwork-frame {{ width: 120px; flex-shrink: 0; }}
@@ -563,6 +848,8 @@ TEMPLATE = """<!doctype html>
   </section>
 
   {champion}
+
+  {ledger}
 
   <div class="section-head">
     <h2>By <em>artwork</em></h2>
