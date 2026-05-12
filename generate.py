@@ -468,8 +468,8 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
         wk_cells_html += f"""
           <div class="wk-cell {cell_cls}" title="Day {c['day_num']:02d} · {e(c['tool'])} · +{fmt(c['views'])} views">
             {live_dot}
+            <div class="wk-daynum">Day {c['day_num']:02d}</div>
             <div class="wk-main">
-              <div class="wk-daynum">Day {c['day_num']:02d}</div>
               <p class="wk-tool">{e(c['tool'])}</p>
               <p class="wk-views">+{fmt(c['views'])}</p>
             </div>
@@ -629,7 +629,7 @@ TEMPLATE = """<!doctype html>
   .wk-cell {{
     aspect-ratio: 4 / 5; border-radius: 4px;
     padding: 18px 16px 16px;
-    display: flex; flex-direction: column; justify-content: space-between;
+    display: flex; flex-direction: column;
     background: rgba(193,52,46,0.05); color: var(--ink);
     position: relative; overflow: hidden;
     transition: transform 0.15s ease;
@@ -675,7 +675,7 @@ TEMPLATE = """<!doctype html>
     font-family: "JetBrains Mono", monospace;
     font-size: 10px; text-transform: uppercase;
     letter-spacing: 0.14em; opacity: 0.65;
-    line-height: 1.4;
+    line-height: 1.4; margin-top: auto;
   }}
   .wk-wday {{
     display: block; font-size: 11px; font-weight: 500;
@@ -902,18 +902,62 @@ TEMPLATE = """<!doctype html>
   }}
 
   @media (max-width: 760px) {{
-    .weekly {{ grid-template-columns: repeat(4, 1fr); }}
-    .wk-tool {{ font-size: 13px; }}
-    .wk-views {{ font-size: 12px; }}
-    .champion {{ grid-template-columns: 1fr; text-align: center; padding: 32px 24px; }}
-    .champ-stat {{ text-align: center; }}
-    .ledger-row {{ grid-template-columns: 90px 1fr; gap: 16px; }}
-    .ledger-runners {{ display: none; }}
-    .series {{ grid-template-columns: 1fr; }}
+    .wrap {{ padding: 28px 18px 64px; }}
+
+    /* masthead — keep slim */
+    .masthead {{ padding-bottom: 10px; }}
+    .brand {{ font-size: 22px; }}
+    .meta {{ font-size: 10px; letter-spacing: 0.1em; }}
+
+    /* hero — gentler typography, less padding */
+    .hero {{ padding: 14px 0 4px; }}
+    h1 {{ font-size: clamp(30px, 8.5vw, 44px); line-height: 1.02; }}
+    .sub {{ font-size: 14px; line-height: 1.45; margin-top: 14px; }}
+
+    /* section heads — smaller h2, tighter gap */
+    .section-head {{ margin: 32px 0 10px; padding-bottom: 8px; }}
+    .section-head h2 {{ font-size: 22px; }}
+    .section-head .note {{ font-size: 9px; letter-spacing: 0.14em; }}
+
+    /* weekly: stack cards vertically, each one a full-width horizontal row */
+    .weekly {{
+      display: flex; flex-direction: column;
+      gap: 6px; margin: 14px 0 12px;
+    }}
+    .wk-cell {{
+      display: grid;
+      grid-template-columns: 52px 1fr auto;
+      gap: 14px; align-items: center;
+      padding: 13px 14px; aspect-ratio: auto;
+      min-height: 64px;
+    }}
+    .wk-cell:hover {{ transform: none; }}  /* lift looks odd on touch */
+    .wk-empty {{ display: none; }}          /* hide future-day placeholders */
+    .wk-daynum {{
+      margin-bottom: 0;
+      font-size: 9px; letter-spacing: 0.16em;
+    }}
+    .wk-main {{ gap: 1px; }}
+    .wk-tool {{ font-size: 19px; line-height: 1.1; }}
+    .wk-views {{ font-size: 12px; margin-top: 2px; }}
+    .wk-date {{
+      text-align: right; line-height: 1.35;
+      margin-top: 0;   /* unset desktop's margin-top: auto */
+    }}
+    .wk-wday {{ font-size: 10px; margin-bottom: 1px; }}
+    .wk-live-dot {{ display: none; }}
+
+    /* by-artwork — already mostly works, tighten a bit */
+    .series {{ grid-template-columns: 1fr; gap: 18px; padding: 24px 0; }}
     .artwork {{ flex-direction: row; align-items: flex-start; gap: 16px; }}
-    .artwork-frame {{ width: 120px; flex-shrink: 0; }}
-    .post {{ grid-template-columns: 28px 1fr auto; }}
+    .artwork-frame {{ width: 110px; flex-shrink: 0; }}
+    .artwork-title {{ font-size: 19px; }}
+    .post {{ grid-template-columns: 28px 1fr auto; padding: 12px 12px; gap: 12px; }}
+    .post-meta .name {{ font-size: 15px; }}
+    .post-views {{ font-size: 15px; }}
     .bar-wrap {{ display: none; }}
+
+    .colophon {{ font-size: 9px; padding-top: 14px; margin-top: 32px; }}
   }}
 </style>
 </head>
