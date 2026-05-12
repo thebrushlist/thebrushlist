@@ -80,7 +80,7 @@
   .wk-cell {
     aspect-ratio: 4 / 5; border-radius: 4px;
     padding: 18px 16px 16px;
-    display: flex; flex-direction: column; justify-content: space-between;
+    display: flex; flex-direction: column;
     background: rgba(193,52,46,0.05); color: var(--ink);
     position: relative; overflow: hidden;
     transition: transform 0.15s ease;
@@ -126,7 +126,7 @@
     font-family: "JetBrains Mono", monospace;
     font-size: 10px; text-transform: uppercase;
     letter-spacing: 0.14em; opacity: 0.65;
-    line-height: 1.4;
+    line-height: 1.4; margin-top: auto;
   }
   .wk-wday {
     display: block; font-size: 11px; font-weight: 500;
@@ -353,18 +353,62 @@
   }
 
   @media (max-width: 760px) {
-    .weekly { grid-template-columns: repeat(4, 1fr); }
-    .wk-tool { font-size: 13px; }
-    .wk-views { font-size: 12px; }
-    .champion { grid-template-columns: 1fr; text-align: center; padding: 32px 24px; }
-    .champ-stat { text-align: center; }
-    .ledger-row { grid-template-columns: 90px 1fr; gap: 16px; }
-    .ledger-runners { display: none; }
-    .series { grid-template-columns: 1fr; }
+    .wrap { padding: 28px 18px 64px; }
+
+    /* masthead — keep slim */
+    .masthead { padding-bottom: 10px; }
+    .brand { font-size: 22px; }
+    .meta { font-size: 10px; letter-spacing: 0.1em; }
+
+    /* hero — gentler typography, less padding */
+    .hero { padding: 14px 0 4px; }
+    h1 { font-size: clamp(30px, 8.5vw, 44px); line-height: 1.02; }
+    .sub { font-size: 14px; line-height: 1.45; margin-top: 14px; }
+
+    /* section heads — smaller h2, tighter gap */
+    .section-head { margin: 32px 0 10px; padding-bottom: 8px; }
+    .section-head h2 { font-size: 22px; }
+    .section-head .note { font-size: 9px; letter-spacing: 0.14em; }
+
+    /* weekly: stack cards vertically, each one a full-width horizontal row */
+    .weekly {
+      display: flex; flex-direction: column;
+      gap: 6px; margin: 14px 0 12px;
+    }
+    .wk-cell {
+      display: grid;
+      grid-template-columns: 52px 1fr auto;
+      gap: 14px; align-items: center;
+      padding: 13px 14px; aspect-ratio: auto;
+      min-height: 64px;
+    }
+    .wk-cell:hover { transform: none; }  /* lift looks odd on touch */
+    .wk-empty { display: none; }          /* hide future-day placeholders */
+    .wk-daynum {
+      margin-bottom: 0;
+      font-size: 9px; letter-spacing: 0.16em;
+    }
+    .wk-main { gap: 1px; }
+    .wk-tool { font-size: 19px; line-height: 1.1; }
+    .wk-views { font-size: 12px; margin-top: 2px; }
+    .wk-date {
+      text-align: right; line-height: 1.35;
+      margin-top: 0;   /* unset desktop's margin-top: auto */
+    }
+    .wk-wday { font-size: 10px; margin-bottom: 1px; }
+    .wk-live-dot { display: none; }
+
+    /* by-artwork — already mostly works, tighten a bit */
+    .series { grid-template-columns: 1fr; gap: 18px; padding: 24px 0; }
     .artwork { flex-direction: row; align-items: flex-start; gap: 16px; }
-    .artwork-frame { width: 120px; flex-shrink: 0; }
-    .post { grid-template-columns: 28px 1fr auto; }
+    .artwork-frame { width: 110px; flex-shrink: 0; }
+    .artwork-title { font-size: 19px; }
+    .post { grid-template-columns: 28px 1fr auto; padding: 12px 12px; gap: 12px; }
+    .post-meta .name { font-size: 15px; }
+    .post-views { font-size: 15px; }
     .bar-wrap { display: none; }
+
+    .colophon { font-size: 9px; padding-top: 14px; margin-top: 32px; }
   }
 </style>
 </head>
@@ -385,15 +429,15 @@
   
       <div class="section-head">
         <h2>By <em>week</em></h2>
-        <span class="note">1 day · anchored 23:21 UTC</span>
+        <span class="note">1 day · anchored 23:30 UTC</span>
       </div>
       <section class="weekly" aria-label="Daily breakdown">
-          <div class="wk-cell wk-baseline" title="Day 01 · Sora 2 · +443 views">
+          <div class="wk-cell wk-baseline" title="Day 01 · Sora 2 · +444 views">
             <span class="wk-live-dot" aria-hidden="true"></span>
+            <div class="wk-daynum">Day 01</div>
             <div class="wk-main">
-              <div class="wk-daynum">Day 01</div>
               <p class="wk-tool">Sora 2</p>
-              <p class="wk-views">+443</p>
+              <p class="wk-views">+444</p>
             </div>
             <div class="wk-date">
               <span class="wk-wday">Tue</span>
@@ -403,7 +447,7 @@
 
   <div class="section-head">
     <h2>By <em>artwork</em></h2>
-    <span class="note">1 work · 7 posts · 1,241 views</span>
+    <span class="note">1 work · 7 posts · 1,248 views</span>
   </div>
 
   
@@ -412,7 +456,7 @@
                   <div class="artwork-frame"><img src="artworks/cabbage-beach.JPG" alt="Cabbage Beach"></div>
                   <div class="artwork-no">Since 2026-05-11</div>
                   <h3 class="artwork-title">Cabbage Beach</h3>
-                  <div class="artwork-medium">1,241 views · 7 models</div>
+                  <div class="artwork-medium">1,248 views · 7 models</div>
                 </div>
                 <div class="series-board">
                   <div class="post win">
@@ -421,7 +465,7 @@
                       <p class="name">Sora 2</p>
                       <span class="post-sub">1 post</span>
                     </div>
-                    <div class="post-views">443<span class="label">views</span></div>
+                    <div class="post-views">444<span class="label">views</span></div>
                     <div class="bar-wrap"><div class="bar" style="width:100%"></div></div>
                   </div>
                   <div class="post">
@@ -439,7 +483,7 @@
                       <p class="name">Kling</p>
                       <span class="post-sub">1 post</span>
                     </div>
-                    <div class="post-views">143<span class="label">views</span></div>
+                    <div class="post-views">145<span class="label">views</span></div>
                     <div class="bar-wrap"><div class="bar" style="width:32%"></div></div>
                   </div>
                   <div class="post">
@@ -466,7 +510,7 @@
                       <p class="name">Wan 2</p>
                       <span class="post-sub">1 post</span>
                     </div>
-                    <div class="post-views">111<span class="label">views</span></div>
+                    <div class="post-views">113<span class="label">views</span></div>
                     <div class="bar-wrap"><div class="bar" style="width:25%"></div></div>
                   </div>
                   <div class="post">
@@ -475,8 +519,8 @@
                       <p class="name">Happy horse</p>
                       <span class="post-sub">1 post</span>
                     </div>
-                    <div class="post-views">92<span class="label">views</span></div>
-                    <div class="bar-wrap"><div class="bar" style="width:20%"></div></div>
+                    <div class="post-views">94<span class="label">views</span></div>
+                    <div class="bar-wrap"><div class="bar" style="width:21%"></div></div>
                   </div></div>
               </article>
 
