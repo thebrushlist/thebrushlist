@@ -1,0 +1,60 @@
+{
+  "snapshots": [
+    {
+      "taken_at": "2026-05-12T23:12:59+00:00",
+      "post_id": "17929273818273316",
+      "artwork_slug": "cabbagebeach",
+      "tool": "Wan 2",
+      "views": 105,
+      "likes": 0
+    },
+    {
+      "taken_at": "2026-05-12T23:12:59+00:00",
+      "post_id": "17935066848252370",
+      "artwork_slug": "cabbagebeach",
+      "tool": "Sora 2",
+      "views": 443,
+      "likes": 1
+    },
+    {
+      "taken_at": "2026-05-12T23:12:59+00:00",
+      "post_id": "17945934963187412",
+      "artwork_slug": "cabbagebeach",
+      "tool": "Kling",
+      "views": 136,
+      "likes": 1
+    },
+    {
+      "taken_at": "2026-05-12T23:12:59+00:00",
+      "post_id": "18045857585546198",
+      "artwork_slug": "cabbagebeach",
+      "tool": "Seedance 2",
+      "views": 169,
+      "likes": 0
+    },
+    {
+      "taken_at": "2026-05-12T23:12:59+00:00",
+      "post_id": "18102071426008212",
+      "artwork_slug": "cabbagebeach",
+      "tool": "Google Veo",
+      "views": 143,
+      "likes": 0
+    },
+    {
+      "taken_at": "2026-05-12T23:12:59+00:00",
+      "post_id": "18110451305496260",
+      "artwork_slug": "cabbagebeach",
+      "tool": "Happy horse",
+      "views": 91,
+      "likes": 0
+    },
+    {
+      "taken_at": "2026-05-12T23:12:59+00:00",
+      "post_id": "18112138534872506",
+      "artwork_slug": "cabbagebeach",
+      "tool": "Grok",
+      "views": 140,
+      "likes": 1
+    }
+  ]
+}
