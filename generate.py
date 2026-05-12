@@ -412,15 +412,11 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
     issue_date = now.strftime("%-d %b %Y") if os.name != "nt" else now.strftime("%d %b %Y")
 
     # ---- weekly commit-graph-style strip ----
-    # All days starting from Day 01, left-to-right, wrapping into 7-wide rows.
-    # The last row is padded with dashed empties so the grid stays rectangular.
-    week_cells = list(daily_champions)
-    if week_cells:
-        remainder = len(week_cells) % 7
-        if remainder:
-            week_cells += [None] * (7 - remainder)
-    else:
-        week_cells = [None] * 7
+    # Show at most the last 7 days. While we're still building up to a full week,
+    # real days sit on the left and the right is padded with dashed empties.
+    # Once we exceed 7 days, the oldest rolls off so today's always rightmost.
+    recent = list(daily_champions[-7:])
+    week_cells = recent + [None] * (7 - len(recent))
 
     # Intensity scaling: loudest non-baseline day across everything shown.
     scale_max = max(
@@ -526,14 +522,17 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
                     <div class="bar-wrap"><div class="bar" style="width:{bar_pct}%"></div></div>
                   </div>"""
 
+            since_label = f"Since {first_seen}" if first_seen else "Unposted"
+            models_label = f"{len(ranked)} model{'s' if len(ranked) != 1 else ''}"
             series_html += f"""
               <article class="series">
-                <div class="artwork">
+                <figure class="artwork">
                   <div class="artwork-frame"><img src="{e(art['image'])}" alt="{e(art['title'])}"></div>
-                  <div class="artwork-no">{('Since ' + first_seen) if first_seen else 'Unposted'}</div>
-                  <h3 class="artwork-title">{e(art['title'])}</h3>
-                  <div class="artwork-medium">{fmt(b['total'])} views · {len(ranked)} model{'s' if len(ranked) != 1 else ''}</div>
-                </div>
+                  <figcaption class="artwork-caption">
+                    <h3 class="artwork-title">{e(art['title'])}</h3>
+                    <div class="artwork-info">{since_label} · {models_label}</div>
+                  </figcaption>
+                </figure>
                 <div class="series-board">{rows}</div>
               </article>"""
 
@@ -601,9 +600,9 @@ TEMPLATE = """<!doctype html>
     color: var(--accent); margin-bottom: 14px;
   }}
   h1 {{
-    font-variation-settings: "opsz" 144, "WONK" 1, "SOFT" 50;
-    font-weight: 300; font-size: clamp(40px, 6.5vw, 72px);
-    line-height: 0.95; letter-spacing: -0.025em; margin: 0;
+    font-variation-settings: "opsz" 144, "WONK" 1, "SOFT" 30;
+    font-weight: 500; font-size: clamp(48px, 7.5vw, 88px);
+    line-height: 0.95; letter-spacing: -0.03em; margin: 0;
   }}
   h1 em {{ font-style: italic; color: var(--accent); }}
   .sub {{
@@ -822,34 +821,45 @@ TEMPLATE = """<!doctype html>
 
   /* ---- per-artwork series ---- */
   .series {{
-    display: grid; grid-template-columns: 220px 1fr;
-    gap: 36px; padding: 36px 0;
+    display: flex; flex-direction: column;
+    gap: 24px;
+    padding: 44px 0;
     border-bottom: 1px solid rgba(20,18,15,0.15);
   }}
-  .artwork {{ display: flex; flex-direction: column; gap: 12px; }}
+  .series:last-child {{ border-bottom: none; }}
+  .artwork {{
+    margin: 0;
+    display: flex; flex-direction: column;
+    gap: 16px; align-items: center;
+  }}
   .artwork-frame {{
-    width: 100%; aspect-ratio: 4/5; border-radius: 3px;
-    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 10px 28px -10px rgba(20,18,15,0.35);
+    width: 100%; max-width: 580px;
+    aspect-ratio: 4/5; border-radius: 3px;
     overflow: hidden; background: var(--paper-shade);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 22px 50px -16px rgba(20,18,15,0.45);
   }}
   .artwork-frame img {{
     width: 100%; height: 100%; object-fit: cover; display: block;
   }}
-  .artwork-no {{
-    font-family: "JetBrains Mono", monospace; font-size: 10px;
-    text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-soft);
+  .artwork-caption {{
+    display: flex; flex-direction: column;
+    gap: 6px; text-align: center;
+    max-width: 580px; width: 100%;
   }}
   .artwork-title {{
     font-variation-settings: "opsz" 144, "WONK" 1;
-    font-style: italic; font-weight: 400; font-size: 22px;
-    line-height: 1.1; letter-spacing: -0.01em; margin: 0;
+    font-style: italic; font-weight: 400; font-size: 34px;
+    line-height: 1; letter-spacing: -0.015em; margin: 0;
   }}
-  .artwork-medium {{
+  .artwork-info {{
     font-family: "JetBrains Mono", monospace; font-size: 10px;
-    text-transform: uppercase; letter-spacing: 0.15em; color: var(--ink-soft);
+    text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-soft);
   }}
 
-  .series-board {{ display: flex; flex-direction: column; gap: 2px; }}
+  .series-board {{
+    display: flex; flex-direction: column; gap: 2px;
+    width: 100%; max-width: 580px; align-self: center;
+  }}
   .post {{
     display: grid; grid-template-columns: 36px 1fr auto 110px;
     gap: 16px; padding: 16px 14px; align-items: center;
@@ -911,7 +921,7 @@ TEMPLATE = """<!doctype html>
 
     /* hero — gentler typography, less padding */
     .hero {{ padding: 14px 0 4px; }}
-    h1 {{ font-size: clamp(30px, 8.5vw, 44px); line-height: 1.02; }}
+    h1 {{ font-size: clamp(34px, 9vw, 52px); line-height: 1.0; }}
     .sub {{ font-size: 14px; line-height: 1.45; margin-top: 14px; }}
 
     /* section heads — smaller h2, tighter gap */
@@ -919,39 +929,43 @@ TEMPLATE = """<!doctype html>
     .section-head h2 {{ font-size: 22px; }}
     .section-head .note {{ font-size: 9px; letter-spacing: 0.14em; }}
 
-    /* weekly: stack cards vertically, each one a full-width horizontal row */
+    /* weekly: compact single-line rows on mobile to stay scannable as days accrue */
     .weekly {{
       display: flex; flex-direction: column;
-      gap: 6px; margin: 14px 0 12px;
+      gap: 5px; margin: 14px 0 12px;
     }}
     .wk-cell {{
       display: grid;
-      grid-template-columns: 52px 1fr auto;
-      gap: 14px; align-items: center;
-      padding: 13px 14px; aspect-ratio: auto;
-      min-height: 64px;
+      grid-template-columns: 50px 1fr auto;
+      gap: 12px; align-items: center;
+      padding: 10px 14px; aspect-ratio: auto;
+      min-height: 46px;
     }}
     .wk-cell:hover {{ transform: none; }}  /* lift looks odd on touch */
     .wk-empty {{ display: none; }}          /* hide future-day placeholders */
     .wk-daynum {{
       margin-bottom: 0;
-      font-size: 9px; letter-spacing: 0.16em;
+      font-size: 10px; letter-spacing: 0.16em;
     }}
-    .wk-main {{ gap: 1px; }}
-    .wk-tool {{ font-size: 19px; line-height: 1.1; }}
-    .wk-views {{ font-size: 12px; margin-top: 2px; }}
+    /* tool name + views sit on one line, wrap only if long */
+    .wk-main {{
+      flex-direction: row; align-items: baseline;
+      gap: 10px; flex-wrap: wrap;
+    }}
+    .wk-tool {{ font-size: 17px; line-height: 1.15; }}
+    .wk-views {{ font-size: 12px; margin-top: 0; }}
     .wk-date {{
-      text-align: right; line-height: 1.35;
+      text-align: right; line-height: 1.3;
       margin-top: 0;   /* unset desktop's margin-top: auto */
+      font-size: 9px;
     }}
     .wk-wday {{ font-size: 10px; margin-bottom: 1px; }}
     .wk-live-dot {{ display: none; }}
 
-    /* by-artwork — already mostly works, tighten a bit */
-    .series {{ grid-template-columns: 1fr; gap: 18px; padding: 24px 0; }}
-    .artwork {{ flex-direction: row; align-items: flex-start; gap: 16px; }}
-    .artwork-frame {{ width: 110px; flex-shrink: 0; }}
-    .artwork-title {{ font-size: 19px; }}
+    /* by-artwork — image becomes a full-width hero per card */
+    .series {{ gap: 16px; padding: 28px 0; }}
+    .artwork {{ gap: 14px; }}
+    .artwork-title {{ font-size: 26px; }}
     .post {{ grid-template-columns: 28px 1fr auto; padding: 12px 12px; gap: 12px; }}
     .post-meta .name {{ font-size: 15px; }}
     .post-views {{ font-size: 15px; }}
@@ -972,7 +986,7 @@ TEMPLATE = """<!doctype html>
 
   <section class="hero">
     <h1>Which AI tool is best for <em>promoting</em> art?</h1>
-    <p class="sub">An artist's benchmark, scored by Instagram views · <a href="https://instagram.com/thebrushlist">@thebrushlist</a> · by <a href="https://instagram.com/vovasimenok">@vovasimenok</a></p>
+    <p class="sub"><a href="https://instagram.com/thebrushlist">@thebrushlist</a> is an artist's benchmark, scored by organic Instagram views, by <a href="https://instagram.com/vovasimenok">@vovasimenok</a></p>
   </section>
 
   {weekly}
