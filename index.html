@@ -119,6 +119,71 @@
     text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-soft);
   }
 
+  /* ---- daily ledger ---- */
+  .ledger {
+    list-style: none; padding: 0; margin: 8px 0 0;
+    display: flex; flex-direction: column;
+  }
+  .ledger-row {
+    display: grid;
+    grid-template-columns: 140px 1fr auto;
+    gap: 24px; align-items: center;
+    padding: 22px 4px;
+    border-bottom: 1px solid rgba(20,18,15,0.12);
+  }
+  .ledger-row:last-child { border-bottom: none; }
+  .ledger-day { display: flex; flex-direction: column; gap: 4px; }
+  .ledger-day .day-num {
+    font-family: "Fraunces", serif;
+    font-variation-settings: "opsz" 144, "WONK" 1;
+    font-style: italic; font-weight: 400; font-size: 30px;
+    line-height: 1; letter-spacing: -0.015em; color: var(--accent);
+  }
+  .ledger-day .day-date {
+    font-family: "JetBrains Mono", monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-soft);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .baseline-tag, .ledger-tag {
+    display: inline-block; padding: 2px 6px;
+    border-radius: 2px; font-size: 9px; letter-spacing: 0.15em;
+  }
+  .ledger-tag.baseline {
+    background: var(--paper-deep); color: var(--ink-soft);
+  }
+  .ledger-tag.live {
+    background: var(--accent); color: var(--paper);
+  }
+  .ledger-tag.live::before {
+    content: ""; display: inline-block;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--paper); margin-right: 5px; vertical-align: middle;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; } 50% { opacity: 1; }
+  }
+  .ledger-winner { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+  .ledger-winner .winner-name {
+    font-variation-settings: "opsz" 144, "WONK" 1;
+    font-weight: 500; font-size: 24px; letter-spacing: -0.01em;
+  }
+  .ledger-winner .winner-views {
+    font-family: "JetBrains Mono", monospace;
+    font-variant-numeric: tabular-nums; font-size: 16px;
+    color: var(--accent); font-weight: 500;
+  }
+  .ledger-winner .winner-views .vlabel {
+    display: inline; font-size: 9px; text-transform: uppercase;
+    letter-spacing: 0.15em; color: var(--ink-soft); margin-left: 6px;
+  }
+  .ledger-runners {
+    font-family: "JetBrains Mono", monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.13em; color: var(--ink-soft);
+    text-align: right; max-width: 360px; line-height: 1.5;
+  }
+
+  /* ---- per-artwork series ---- */
   .series {
     display: grid; grid-template-columns: 220px 1fr;
     gap: 36px; padding: 36px 0;
@@ -202,6 +267,8 @@
   @media (max-width: 760px) {
     .champion { grid-template-columns: 1fr; text-align: center; padding: 32px 24px; }
     .champ-stat { text-align: center; }
+    .ledger-row { grid-template-columns: 90px 1fr; gap: 16px; }
+    .ledger-runners { display: none; }
     .series { grid-template-columns: 1fr; }
     .artwork { flex-direction: row; align-items: flex-start; gap: 16px; }
     .artwork-frame { width: 120px; flex-shrink: 0; }
@@ -237,9 +304,27 @@
             </div>
           </section>
 
+  
+          <div class="section-head">
+            <h2>The daily <em>ledger</em></h2>
+            <span class="note">1 day · anchored 22:54 UTC</span>
+          </div>
+          <ol class="ledger">
+              <li class="ledger-row">
+                <div class="ledger-day">
+                  <span class="day-num">Day 01</span>
+                  <span class="day-date">12 May → 13 May <span class="ledger-tag baseline">baseline</span> <span class="ledger-tag live">live</span></span>
+                </div>
+                <div class="ledger-winner">
+                  <span class="winner-name">Sora 2</span>
+                  <span class="winner-views">+438<span class="vlabel">views</span></span>
+                </div>
+                <div class="ledger-runners">Seedance 2 +169 · Google Veo +142 · Grok +140</div>
+              </li></ol>
+
   <div class="section-head">
     <h2>By <em>artwork</em></h2>
-    <span class="note">1 work · 7 posts · 892 views</span>
+    <span class="note">1 work · 7 posts · 1,147 views</span>
   </div>
 
   
@@ -248,7 +333,7 @@
                   <div class="artwork-frame"><img src="artworks/cabbage-beach.JPG" alt="Cabbage Beach"></div>
                   <div class="artwork-no">Since 2026-05-11</div>
                   <h3 class="artwork-title">Cabbage Beach</h3>
-                  <div class="artwork-medium">892 views · 7 models</div>
+                  <div class="artwork-medium">1,147 views · 7 models</div>
                 </div>
                 <div class="series-board">
                   <div class="post win">
@@ -290,11 +375,11 @@
                   <div class="post">
                     <div class="post-rank">5</div>
                     <div class="post-meta">
-                      <p class="name">Wan 2</p>
+                      <p class="name">Kling</p>
                       <span class="post-sub">1 post</span>
                     </div>
-                    <div class="post-views">3<span class="label">views</span></div>
-                    <div class="bar-wrap"><div class="bar" style="width:0%"></div></div>
+                    <div class="post-views">120<span class="label">views</span></div>
+                    <div class="bar-wrap"><div class="bar" style="width:27%"></div></div>
                   </div>
                   <div class="post">
                     <div class="post-rank">6</div>
@@ -302,17 +387,17 @@
                       <p class="name">Happy horse</p>
                       <span class="post-sub">1 post</span>
                     </div>
-                    <div class="post-views">0<span class="label">views</span></div>
-                    <div class="bar-wrap"><div class="bar" style="width:0%"></div></div>
+                    <div class="post-views">74<span class="label">views</span></div>
+                    <div class="bar-wrap"><div class="bar" style="width:16%"></div></div>
                   </div>
                   <div class="post">
                     <div class="post-rank">7</div>
                     <div class="post-meta">
-                      <p class="name">Kling</p>
+                      <p class="name">Wan 2</p>
                       <span class="post-sub">1 post</span>
                     </div>
-                    <div class="post-views">0<span class="label">views</span></div>
-                    <div class="bar-wrap"><div class="bar" style="width:0%"></div></div>
+                    <div class="post-views">64<span class="label">views</span></div>
+                    <div class="bar-wrap"><div class="bar" style="width:14%"></div></div>
                   </div></div>
               </article>
 
