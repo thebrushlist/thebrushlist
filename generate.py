@@ -55,7 +55,7 @@ KNOWN_TOOLS = {
     "Sora 2":               ["sora", "sora2"],
     "Midjourney v7":        ["midjourney", "mj", "midjourneyv7", "mjv7"],
     "Flux 1.1 Pro":         ["flux", "fluxpro", "flux11", "flux11pro"],
-    "DALL·E 4":             ["dalle", "dalle4", "dalle-4"],
+    "DALL\u00b7E 4":        ["dalle", "dalle4", "dalle-4"],
     "Stable Diffusion 3.5": ["sd", "sd35", "stablediffusion", "stablediffusion35", "sdxl"],
     "Veo 3":                ["veo", "veo3"],
     "Runway Gen-3":         ["runway", "runwaygen3", "gen3"],
@@ -68,13 +68,16 @@ def normalize(s):
 
 
 def title_from_filename(name):
-    """`night-tide.jpg` → `Night Tide`."""
+    """`night-tide.jpg` -> `Night Tide`. Also handles spaces: `katoomba river.jpg` -> `Katoomba River`."""
     stem = Path(name).stem
-    return " ".join(w.capitalize() for w in re.split(r"[-_]+", stem))
+    # FIX: split on hyphens, underscores AND spaces so every word is capitalised.
+    # Previously only [-_]+ was used, so a filename like "katoomba river.jpg"
+    # was treated as one word, capitalising only the first letter -> "Katoomba river".
+    return " ".join(w.capitalize() for w in re.split(r"[-_ ]+", stem))
 
 
 def slug_from_filename(name):
-    """`night-tide.jpg` → `nighttide` (used for caption matching)."""
+    """`night-tide.jpg` -> `nighttide` (used for caption matching)."""
     return normalize(Path(name).stem)
 
 
@@ -82,11 +85,11 @@ def fmt(n):
     try:
         return f"{int(n):,}"
     except (TypeError, ValueError):
-        return "—"
+        return "\u2014"
 
 
 def pretty_date(iso_date):
-    """`2026-05-13` → `13 May`."""
+    """`2026-05-13` -> `13 May`."""
     try:
         d = dt.datetime.strptime(iso_date, "%Y-%m-%d")
     except ValueError:
@@ -174,7 +177,7 @@ def detect_tool(caption):
     m = USING_RE.search(caption or "")
     if not m:
         return None
-    raw = m.group(1).strip(" .,:;-—")
+    raw = m.group(1).strip(" .,:;-\u2014")
     return canonicalize_tool(raw)
 
 
@@ -286,8 +289,6 @@ def compute_daily_champions(history):
         if not had_data:
             continue
 
-        # for each post, delta = views_at_w_end - views_at_w_start
-        # (day 1's "views_at_w_start" is treated as 0 → baseline = full views)
         tools = {}
         for post_id, snaps in by_post.items():
             v_end, tool_end = views_as_of(snaps, w_end)
@@ -334,7 +335,7 @@ def main():
         for path in sorted(ARTWORKS_DIR.iterdir()):
             if path.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
                 artworks.append({
-                    "slug": slug_from_filename(path.name),
+                    "slug":  slug_from_filename(path.name),
                     "title": title_from_filename(path.name),
                     "image": path.as_posix(),
                 })
@@ -366,16 +367,19 @@ def main():
     daily_champions = compute_daily_champions(history)
     print(f"History: {len(history['snapshots'])} snapshot(s) · ledger spans {len(daily_champions)} day(s).")
 
-    # aggregate: per-artwork → per-tool → total views
-    by_artwork = {a["slug"]: {"art": a, "tools": {}, "first_seen": None, "total": 0}
-                  for a in artworks}
+    # aggregate: per-artwork -> per-tool -> total views
+    # FIX: track last_seen alongside first_seen so we can sort newest artwork first
+    by_artwork = {
+        a["slug"]: {"art": a, "tools": {}, "first_seen": None, "last_seen": None, "total": 0}
+        for a in artworks
+    }
     global_tools = {}
-    grand_total = 0
-    unmatched = []
+    grand_total  = 0
+    unmatched    = []
 
     for p in posts:
-        slug = p["artwork"]
-        tool = p["tool"]
+        slug  = p["artwork"]
+        tool  = p["tool"]
         views = p["views"]
         grand_total += views
 
@@ -388,8 +392,12 @@ def main():
             bucket = by_artwork[slug]
             bucket["total"] += views
             ts = p["timestamp"]
-            if ts and (bucket["first_seen"] is None or ts < bucket["first_seen"]):
-                bucket["first_seen"] = ts
+            if ts:
+                if bucket["first_seen"] is None or ts < bucket["first_seen"]:
+                    bucket["first_seen"] = ts
+                # FIX: record the most recent post so we can sort newest artwork first
+                if bucket["last_seen"] is None or ts > bucket["last_seen"]:
+                    bucket["last_seen"] = ts
             if tool:
                 bucket["tools"].setdefault(tool, {"views": 0, "posts": 0})
                 bucket["tools"][tool]["views"] += views
@@ -412,19 +420,14 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
     issue_date = now.strftime("%-d %b %Y") if os.name != "nt" else now.strftime("%d %b %Y")
 
     # ---- weekly commit-graph-style strip ----
-    # Show at most the last 7 days. While we're still building up to a full week,
-    # real days sit on the left and the right is padded with dashed empties.
-    # Once we exceed 7 days, the oldest rolls off so today's always rightmost.
     recent = list(daily_champions[-7:])
     week_cells = recent + [None] * (7 - len(recent))
 
-    # Intensity scaling: loudest non-baseline day across everything shown.
     scale_max = max(
         (c["views"] for c in week_cells if c and not c["is_baseline"]),
         default=0,
     )
 
-    # anchor time (start of Day 01) gives the rhythm — used in the section note
     if daily_champions:
         try:
             anchor_dt = dt.datetime.fromisoformat(daily_champions[0]["window_start"])
@@ -437,7 +440,7 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
     wk_cells_html = ""
     for c in week_cells:
         if c is None:
-            wk_cells_html += '<div class="wk-cell wk-empty"><span class="wk-empty-mark">—</span></div>'
+            wk_cells_html += '<div class="wk-cell wk-empty"><span class="wk-empty-mark">\u2014</span></div>'
             continue
 
         try:
@@ -462,7 +465,7 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
         live_dot = '<span class="wk-live-dot" aria-hidden="true"></span>' if c["in_progress"] else ""
 
         wk_cells_html += f"""
-          <div class="wk-cell {cell_cls}" title="Day {c['day_num']:02d} · {e(c['tool'])} · +{fmt(c['views'])} views">
+          <div class="wk-cell {cell_cls}" title="Day {c['day_num']:02d} \u00b7 {e(c['tool'])} \u00b7 +{fmt(c['views'])} views">
             {live_dot}
             <div class="wk-daynum">Day {c['day_num']:02d}</div>
             <div class="wk-main">
@@ -477,7 +480,7 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
 
     day_count = len(daily_champions)
     if day_count:
-        weekly_note = f"{day_count} day{'s' if day_count != 1 else ''} · anchored {e(anchor_label)}"
+        weekly_note = f"{day_count} day{'s' if day_count != 1 else ''} \u00b7 anchored {e(anchor_label)}"
     else:
         weekly_note = "No data yet"
 
@@ -489,8 +492,14 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
       <section class="weekly" aria-label="Daily breakdown">{wk_cells_html}</section>"""
 
     # ---- per-artwork series ----
+    # FIX: sort by most-recent post timestamp descending so the newest artwork leads.
+    # Previously sorted by total views; now the artwork with the most recent IG post
+    # appears first, matching the expectation that "latest work" tops the page.
     active_artworks = [slug for slug, b in by_artwork.items() if b["tools"]]
-    active_artworks.sort(key=lambda s: -by_artwork[s]["total"])
+    active_artworks.sort(
+        key=lambda s: by_artwork[s]["last_seen"] or "",
+        reverse=True,
+    )
 
     series_html = ""
     if not active_artworks:
@@ -530,7 +539,7 @@ def render(artworks, by_artwork, global_tools, posts, unmatched,
                   <div class="artwork-frame"><img src="{e(art['image'])}" alt="{e(art['title'])}"></div>
                   <figcaption class="artwork-caption">
                     <h3 class="artwork-title">{e(art['title'])}</h3>
-                    <div class="artwork-info">{since_label} · {models_label}</div>
+                    <div class="artwork-info">{since_label} \u00b7 {models_label}</div>
                   </figcaption>
                 </figure>
                 <div class="series-board">{rows}</div>
@@ -918,22 +927,18 @@ TEMPLATE = """<!doctype html>
   @media (max-width: 760px) {{
     .wrap {{ padding: 28px 18px 64px; }}
 
-    /* masthead — keep slim */
     .masthead {{ padding-bottom: 10px; }}
     .brand {{ font-size: 22px; }}
     .meta {{ font-size: 10px; letter-spacing: 0.1em; }}
 
-    /* hero — gentler typography, less padding */
     .hero {{ padding: 14px 0 4px; }}
     h1 {{ font-size: clamp(34px, 9vw, 52px); line-height: 1.0; }}
     .sub {{ font-size: 14px; line-height: 1.45; margin-top: 14px; }}
 
-    /* section heads — smaller h2, tighter gap */
     .section-head {{ margin: 32px 0 10px; padding-bottom: 8px; }}
     .section-head h2 {{ font-size: 22px; }}
     .section-head .note {{ font-size: 9px; letter-spacing: 0.14em; }}
 
-    /* weekly: compact single-line rows on mobile to stay scannable as days accrue */
     .weekly {{
       display: flex; flex-direction: column;
       gap: 5px; margin: 14px 0 12px;
@@ -945,28 +950,16 @@ TEMPLATE = """<!doctype html>
       padding: 10px 14px; aspect-ratio: auto;
       min-height: 46px;
     }}
-    .wk-cell:hover {{ transform: none; }}  /* lift looks odd on touch */
-    .wk-empty {{ display: none; }}          /* hide future-day placeholders */
-    .wk-daynum {{
-      margin-bottom: 0;
-      font-size: 10px; letter-spacing: 0.16em;
-    }}
-    /* tool name + views sit on one line, wrap only if long */
-    .wk-main {{
-      flex-direction: row; align-items: baseline;
-      gap: 10px; flex-wrap: wrap;
-    }}
+    .wk-cell:hover {{ transform: none; }}
+    .wk-empty {{ display: none; }}
+    .wk-daynum {{ margin-bottom: 0; font-size: 10px; letter-spacing: 0.16em; }}
+    .wk-main {{ flex-direction: row; align-items: baseline; gap: 10px; flex-wrap: wrap; }}
     .wk-tool {{ font-size: 17px; line-height: 1.15; }}
     .wk-views {{ font-size: 12px; margin-top: 0; }}
-    .wk-date {{
-      text-align: right; line-height: 1.3;
-      margin-top: 0;   /* unset desktop's margin-top: auto */
-      font-size: 9px;
-    }}
+    .wk-date {{ text-align: right; line-height: 1.3; margin-top: 0; font-size: 9px; }}
     .wk-wday {{ font-size: 10px; margin-bottom: 1px; }}
     .wk-live-dot {{ display: none; }}
 
-    /* by-artwork — image becomes a full-width hero per card */
     .series {{ gap: 16px; padding: 28px 0; }}
     .artwork {{ gap: 12px; }}
     .artwork-frame {{ max-width: 280px; }}
