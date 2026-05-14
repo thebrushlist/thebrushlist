@@ -370,22 +370,18 @@
   @media (max-width: 760px) {
     .wrap { padding: 28px 18px 64px; }
 
-    /* masthead — keep slim */
     .masthead { padding-bottom: 10px; }
     .brand { font-size: 22px; }
     .meta { font-size: 10px; letter-spacing: 0.1em; }
 
-    /* hero — gentler typography, less padding */
     .hero { padding: 14px 0 4px; }
     h1 { font-size: clamp(34px, 9vw, 52px); line-height: 1.0; }
     .sub { font-size: 14px; line-height: 1.45; margin-top: 14px; }
 
-    /* section heads — smaller h2, tighter gap */
     .section-head { margin: 32px 0 10px; padding-bottom: 8px; }
     .section-head h2 { font-size: 22px; }
     .section-head .note { font-size: 9px; letter-spacing: 0.14em; }
 
-    /* weekly: compact single-line rows on mobile to stay scannable as days accrue */
     .weekly {
       display: flex; flex-direction: column;
       gap: 5px; margin: 14px 0 12px;
@@ -397,28 +393,16 @@
       padding: 10px 14px; aspect-ratio: auto;
       min-height: 46px;
     }
-    .wk-cell:hover { transform: none; }  /* lift looks odd on touch */
-    .wk-empty { display: none; }          /* hide future-day placeholders */
-    .wk-daynum {
-      margin-bottom: 0;
-      font-size: 10px; letter-spacing: 0.16em;
-    }
-    /* tool name + views sit on one line, wrap only if long */
-    .wk-main {
-      flex-direction: row; align-items: baseline;
-      gap: 10px; flex-wrap: wrap;
-    }
+    .wk-cell:hover { transform: none; }
+    .wk-empty { display: none; }
+    .wk-daynum { margin-bottom: 0; font-size: 10px; letter-spacing: 0.16em; }
+    .wk-main { flex-direction: row; align-items: baseline; gap: 10px; flex-wrap: wrap; }
     .wk-tool { font-size: 17px; line-height: 1.15; }
     .wk-views { font-size: 12px; margin-top: 0; }
-    .wk-date {
-      text-align: right; line-height: 1.3;
-      margin-top: 0;   /* unset desktop's margin-top: auto */
-      font-size: 9px;
-    }
+    .wk-date { text-align: right; line-height: 1.3; margin-top: 0; font-size: 9px; }
     .wk-wday { font-size: 10px; margin-bottom: 1px; }
     .wk-live-dot { display: none; }
 
-    /* by-artwork — image becomes a full-width hero per card */
     .series { gap: 16px; padding: 28px 0; }
     .artwork { gap: 12px; }
     .artwork-frame { max-width: 280px; }
@@ -465,12 +449,12 @@
               <span>12 May</span>
             </div>
           </div>
-          <div class="wk-cell wk-l4" title="Day 02 · Kling 3 · +134 views">
+          <div class="wk-cell wk-l4" title="Day 02 · Kling 3 · +137 views">
             <span class="wk-live-dot" aria-hidden="true"></span>
             <div class="wk-daynum">Day 02</div>
             <div class="wk-main">
               <p class="wk-tool">Kling 3</p>
-              <p class="wk-views">+134</p>
+              <p class="wk-views">+137</p>
             </div>
             <div class="wk-date">
               <span class="wk-wday">Wed</span>
@@ -480,10 +464,38 @@
 
   <div class="section-head">
     <h2>By <em>artwork</em></h2>
-    <span class="note">2 work · 9 posts · 1,541 views</span>
+    <span class="note">2 work · 9 posts · 1,554 views</span>
   </div>
 
   
+              <article class="series">
+                <figure class="artwork">
+                  <div class="artwork-frame"><img src="artworks/Katoomba River .jpg" alt="Katoomba River "></div>
+                  <figcaption class="artwork-caption">
+                    <h3 class="artwork-title">Katoomba River </h3>
+                    <div class="artwork-info">Since 2026-05-14 · 2 models</div>
+                  </figcaption>
+                </figure>
+                <div class="series-board">
+                  <div class="post win">
+                    <div class="post-rank">1</div>
+                    <div class="post-meta">
+                      <p class="name">Kling 3</p>
+                      <span class="post-sub">1 post</span>
+                    </div>
+                    <div class="post-views">137<span class="label">views</span></div>
+                    <div class="bar-wrap"><div class="bar" style="width:100%"></div></div>
+                  </div>
+                  <div class="post">
+                    <div class="post-rank">2</div>
+                    <div class="post-meta">
+                      <p class="name">Hailuo 2</p>
+                      <span class="post-sub">1 post</span>
+                    </div>
+                    <div class="post-views">104<span class="label">views</span></div>
+                    <div class="bar-wrap"><div class="bar" style="width:75%"></div></div>
+                  </div></div>
+              </article>
               <article class="series">
                 <figure class="artwork">
                   <div class="artwork-frame"><img src="artworks/cabbage-beach.JPG" alt="Cabbage Beach"></div>
@@ -555,34 +567,6 @@
                     </div>
                     <div class="post-views">112<span class="label">views</span></div>
                     <div class="bar-wrap"><div class="bar" style="width:24%"></div></div>
-                  </div></div>
-              </article>
-              <article class="series">
-                <figure class="artwork">
-                  <div class="artwork-frame"><img src="artworks/Katoomba River .jpg" alt="Katoomba river "></div>
-                  <figcaption class="artwork-caption">
-                    <h3 class="artwork-title">Katoomba river </h3>
-                    <div class="artwork-info">Since 2026-05-14 · 2 models</div>
-                  </figcaption>
-                </figure>
-                <div class="series-board">
-                  <div class="post win">
-                    <div class="post-rank">1</div>
-                    <div class="post-meta">
-                      <p class="name">Kling 3</p>
-                      <span class="post-sub">1 post</span>
-                    </div>
-                    <div class="post-views">134<span class="label">views</span></div>
-                    <div class="bar-wrap"><div class="bar" style="width:100%"></div></div>
-                  </div>
-                  <div class="post">
-                    <div class="post-rank">2</div>
-                    <div class="post-meta">
-                      <p class="name">Hailuo 2</p>
-                      <span class="post-sub">1 post</span>
-                    </div>
-                    <div class="post-views">94<span class="label">views</span></div>
-                    <div class="bar-wrap"><div class="bar" style="width:70%"></div></div>
                   </div></div>
               </article>
 
